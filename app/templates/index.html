@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRM Report Processor</title>
+    <style>
+        body { font-family: sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; line-height: 1.6; background-color: #f4f4f4; }
+        h1 { color: #333; }
+        .container { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        .form-group { margin-bottom: 20px; }
+        .file-input-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input[type="file"] { border: 1px solid #ddd; padding: 10px; width: 100%; box-sizing: border-box; border-radius: 4px; }
+        button { background: #007bff; color: white; padding: 12px 20px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; width: 100%; }
+        button:disabled { background: #aaa; }
+        #status { margin-top: 20px; font-weight: bold; padding: 10px; border-radius: 4px; }
+        .status-processing { color: #856404; background-color: #fff3cd; border: 1px solid #ffeeba; }
+        .status-error { color: #721c24; background-color: #f8d7da; border: 1px solid #f5c6cb; }
+        .status-success { color: #155724; background-color: #d4edda; border: 1px solid #c3e6cb; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Leadsquared CRM Report Generator</h1>
+        <p>Please upload all four required CSV files. The system will process them and provide a final combined report for download.</p>
+        
+        <form id="upload-form">
+            <div class="file-input-group">
+                <label for="filter-date">Select Report Date</label>
+                <input type="date" id="filter-date" name="filter_date" required>
+            </div>
+            <div class="file-input-group">
+                <label for="planned-file">1. Planned Visits File</label>
+                <input type="file" id="planned-file" name="planned_visit_file" accept=".csv" required>
+            </div>
+            <div class="file-input-group">
+                <label for="unplanned-file">2. Unplanned Visits File</label>
+                <input type="file" id="unplanned-file" name="unplanned_visit_file" accept=".csv" required>
+            </div>
+            <div class="file-input-group">
+                <label for="counters-file">3. Counters (Lead Export) File</label>
+                <input type="file" id="counters-file" name="counters_file" accept=".csv" required>
+            </div>
+            <div class="file-input-group">
+                <label for="users-file">4. Users File</label>
+                <input type="file" id="users-file" name="users_file" accept=".csv" required>
+            </div>
+            
+            <button type="submit" id="submit-btn">Process and Download Report</button>
+        </form>
+
+        <div id="status"></div>
+    </div>
+
+    <script>
+        const form = document.getElementById('upload-form');
+        const submitBtn = document.getElementById('submit-btn');
+        const statusDiv = document.getElementById('status');
+        const dateInput = document.getElementById('filter-date');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(form);
+            const inputs = form.querySelectorAll('input[type="file"]');
+
+            for (const input of inputs) {
+                if (input.files.length === 0) {
+                    setStatus(`Error: Please select a file for '${input.previousElementSibling.textContent}'.`, 'error');
+                    return;
+                }
+                formData.append(input.name, input.files[0]);
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.innerText = 'Processing... This may take a minute.';
+            setStatus('Uploading and processing your files. Please wait...', 'processing');
+
+            try {
+                const response = await fetch('/process-reports/', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    const contentDisposition = response.headers.get('content-disposition');
+                    let filename = "final_report.csv";
+                    if (contentDisposition) {
+                        const filenameMatch = contentDisposition.match(/filename="?(.+)"?/);
+                        if (filenameMatch && filenameMatch.length > 1) {
+                            filename = filenameMatch[1];
+                        }
+                    }
+                    a.href = url;
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    window.URL.revokeObjectURL(url);
+                    setStatus(`Success! Your report '${filename}' has been downloaded.`, 'success');
+                } else {
+                    const errorData = await response.json();
+                    setStatus(`Error: ${errorData.detail}`, 'error');
+                }
+            } catch (error) {
+                setStatus('An unexpected network or application error occurred. Check the console for details.', 'error');
+                console.error('Fetch error:', error);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerText = 'Process and Download Report';
+                form.reset();
+            }
+        });
+
+        function setStatus(message, type) {
+            statusDiv.textContent = message;
+            statusDiv.className = `status-${type}`;
+            statusDiv.style.display = 'block';
+        }
+    </script>
+</body>
+</html>

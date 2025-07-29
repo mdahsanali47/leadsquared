@@ -1,0 +1,142 @@
+# Mapping from Shapefile names to Master Data names.
+#
+# Format:
+# SHAPEFILE_STATE_NAME:
+#   SHAPEFILE_DISTRICT_NAME_1: MASTER_DISTRICT_NAME_1
+#   SHAPEFILE_DISTRICT_NAME_2: MASTER_DISTRICT_NAME_2
+#
+# - Use quotes for names with special characters, newlines, or leading/trailing spaces.
+# - State and District names are case-sensitive and must match the shapefile exactly.
+# - If a district is not listed, its original name from the shapefile is assumed to be correct.
+
+ANDHRA PRADESH:
+  'Sri Potti Sriramulu Nell*': Nellore
+  Visakhapatnam: Vizag
+  'Y.S.R.': YSR Kadapa # Common mapping, master name not in provided list.
+
+ASSAM:
+  Kamrup: Kamrup Rural
+  Kamrup Metropolitan: Kamrup Metro
+  Lakhimpur: North Lakhimpur
+  'South Salmara Mancachar': 'South Salmara-Mankac'
+
+BIHAR:
+  'Kaimur (bhabua)': Bhabhua
+  Pashchim Champaran: West Champaran
+  Purba Champaran: East Champaran
+  Purnia: Purnea
+
+GUJARAT:
+  Ahmadabad: Ahmedabad
+  'Banas Kantha': Banaskantha
+  Mahesana: Mehsana
+  'Panch Mahals': Panchmahal
+  'Sabar Kantha': Sabarkantha
+  'The Dangs': Dang
+
+HARYANA:
+  # No mismatches found in the provided lists. Gurugram is consistent.
+  # An older shapefile might require:
+  # Gurgaon: Gurugram
+
+HIMACHAL PRADESH:
+  'Lahul & Spiti': 'Lahaul and Spiti'
+
+JAMMU & KASHMIR:
+  # Master data for this state was not provided. Below are common mappings.
+  Baramula: Baramulla
+  Badgam: Budgam
+  Punch: Poonch
+  Shupiyan: Shopian
+
+JHARKHAND:
+  Pashchimi Singhbhum: West Singhbhum
+  Purbi Singhbhum: East Singhbhum
+  'Saraikela-kharsawan': 'Saraikela-Kharsawan'
+
+KARNATAKA:
+  # Master data for this state was not provided. Below are common mappings
+  # for new official names (in shapefile) to older common names.
+  Ballari: Bellary
+  Bangalore: Bengaluru Urban # Or just Bengaluru, depending on master data standard
+  Belagavi: Belgaum
+  Chikkamagaluru: Chikmagalur
+  Kalaburagi: Gulbarga
+  Mysuru: Mysore
+  Shivamogga: Shimoga
+  Tumakuru: Tumkur
+  Vijayapura: Bijapur
+
+MADHYA PRADESH:
+  # Master data for this state was sparse. Below are common mappings.
+  'East Nimar': Khandwa
+  'West Nimar': Khargone
+  Hoshangabad: Narmadapuram
+
+MAHARASHTRA:
+  Ahmadnagar: Ahmednagar
+  Bid: Beed
+  'Mumbai Suburban': Mumbai
+  # Mapping Mumbai (City) also to Mumbai if they need to be combined.
+  Mumbai: Mumbai
+
+MEGHALAYA:
+  Ribhoi: 'Ri Bhoi'
+  'East Jaintia Hills': 'East Jaintia Hills' # Consistent, but master data exists
+  'West Jaintia Hills': 'West Jaintia Hills' # Consistent, but master data exists
+
+ODISHA:
+  Anugul: Angul
+  Baleshwar: Balasore
+  Jajapur: Jajpur
+
+PUNJAB:
+  # Master data for these districts was not provided. Below are common mappings.
+  'Sahibzada Ajit Singh Nag*': Mohali
+  'Shahid Bhagat Singh Nagar': Nawanshahr
+  'Sri Muktsar Sahib': Muktsar
+
+RAJASTHAN:
+  Ganganagar: Sri Ganganagar
+
+SIKKIM:
+  # Master data for this state was not provided. Below are common mappings.
+  'North  District': 'North Sikkim' # Note the double space in shapefile name
+  'South District': 'South Sikkim'
+  'East District': 'East Sikkim'
+  'West District': 'West Sikkim'
+
+TAMIL NADU:
+  # Master data for these districts was not provided. Below are common mappings.
+  Kanniyakumari: Kanyakumari
+  'The Nilgiris': Nilgiris
+  Thoothukkudi: Tuticorin
+
+TELANGANA:
+  Jangoan: Jangaon
+  'Kumuram Bheem Asifabad': 'Komaram Bheem' # Common mapping
+  Jayashankar: 'Jayashankar Bhupalpally' # Common mapping
+
+UTTAR PRADESH:
+  Faizabad: Ayodhya
+  Kannauj: Kannor # As per the provided master list
+  Kheri: Lakhimpur
+  Mahrajganj: Maharajganj
+  Mainpuri: Mainpuri # Master list had a typo "Manipuri", assuming it should be "Mainpuri"
+  'Sant Kabir Nagar': 'St. Kabir Nagar'
+
+UTTARAKHAND:
+  'Almora\n': Almora # Correcting data with a newline character
+  Garhwal: Pauri Garhwal
+  Hardwar: Haridwar
+
+WEST BENGAL:
+  'Cooch Behar': Coochbehar
+  Darjiling: Darjeeling
+  Maldah: Malda
+  'Medinipur West': Paschim Medinipur
+  'North Twenty Four Pargan*': 'North 24 Pgs.'
+  'Paschim Bardhaman': 'West Burdwan'
+  'Purba Bardhaman': 'East Burdwan'
+  Puruliya: Purulia
+  'South Twenty Four Pargan*': 'South 24 Pgs.'

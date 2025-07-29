@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: leadsquared-gis-processor-svc
+  namespace: leadsquared
+  labels:
+    app: leadsquared-gis-processor
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: http 
+    protocol: TCP
+    name: http
+  selector:
+    app: leadsquared-gis-processor
