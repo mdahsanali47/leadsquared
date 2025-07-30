@@ -7,30 +7,41 @@ set -e
 OCI_REGION_KEY="bom"
 OCI_NAMESPACE="bm4vulrtwoqg"
 IMAGE_NAME="leadsquared-gis-processor"
+TARGET_PLATFORM="linux/arm64" # The architecture you want to build
 # --- End Configuration ---
 
-# 1. Get Git Hash
+# 1. Check for buildx and create a builder if needed
+BUILDER_NAME="my-multi-arch-builder"
+if ! docker buildx ls | grep -q "$BUILDER_NAME"; then
+  echo "--- Creating new buildx builder instance: $BUILDER_NAME ---"
+  docker buildx create --name "$BUILDER_NAME" --use
+else
+  echo "--- Using existing buildx builder: $BUILDER_NAME ---"
+  docker buildx use "$BUILDER_NAME"
+fi
+
+# 2. Get Git Hash
 GIT_HASH=$(git rev-parse --short HEAD)
 if [ -z "$GIT_HASH" ]; then
-  echo "Error: Not a git repository or no commits."
+  echo "Error: Not a git repository or no commits. Please run 'git init && git commit'"
   exit 1
 fi
 
 FULL_IMAGE_URI="${OCI_REGION_KEY}.ocir.io/${OCI_NAMESPACE}/${IMAGE_NAME}"
 IMAGE_WITH_TAG="${FULL_IMAGE_URI}:${GIT_HASH}"
 
-# 2. Build the arm64 Image
-echo "--- Building image: ${IMAGE_WITH_TAG} ---"
-docker build --platform linux/arm64 --tag ${IMAGE_WITH_TAG} --tag ${FULL_IMAGE_URI}:latest .
-
-# 3. Push to OCI Registry
-echo "--- Pushing image to OCI Registry ---"
-docker push ${IMAGE_WITH_TAG}
-docker push ${FULL_IMAGE_URI}:latest
+# 3. Build and Push the image using buildx
+echo "--- Building and pushing image for ${TARGET_PLATFORM}: ${IMAGE_WITH_TAG} ---"
+docker buildx build \
+  --platform "${TARGET_PLATFORM}" \
+  --tag "${IMAGE_WITH_TAG}" \
+  --tag "${FULL_IMAGE_URI}:latest" \
+  --push \
+  .
 
 # 4. Inform the user to update the manifest
 echo ""
-echo "✅ Image successfully built and pushed."
+echo "✅ Image successfully built and pushed to OCI Registry."
 echo ""
 echo "------------------------------------------------------------------"
 echo "NEXT STEP: Update your Kubernetes manifest with the new image tag."

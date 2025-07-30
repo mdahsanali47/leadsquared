@@ -158,18 +158,18 @@ def run_processing_pipeline(planned_visit_file, unplanned_visit_file, counters_f
 
     if df.empty:
         print("No data found for the selected date. Returning an empty report.")
-        return pd.DataFrame(columns=common_cols + ['District', 'State', 'digipin', 'Employee Id', 'first_counter_datetime', 'late'])
+        return pd.DataFrame(columns=common_cols + ['District', 'State', 'digipin', 'Employee Id', 'first_counter_visit_datetime', 'late'])
 
     # --- Step 4: NEW TIME-BASED COLUMNS (Corrected Logic) ---
     print("Calculating first visit time and late flag...")
 
-    # a) Create the 'first_counter_datetime' column. This correctly shows the first visit time for all rows of a user.
-    df['first_counter_datetime'] = df.groupby('Task Owner Email')['CompletedOn'].transform('min')
+    # a) Create the 'first_counter_visit_datetime' column. This correctly shows the first visit time for all rows of a user.
+    df['first_counter_visit_datetime'] = df.groupby('Task Owner Email')['CompletedOn'].transform('min')
 
     # b) Identify the specific ROW that corresponds to the first visit.
-    # A row is a "first visit" if its 'CompletedOn' time equals the 'first_counter_datetime'.
+    # A row is a "first visit" if its 'CompletedOn' time equals the 'first_counter_visit_datetime'.
     # We use drop_duplicates because a user could have two visits at the exact same first time. We only mark one.
-    first_visit_indices = df[df['CompletedOn'] == df['first_counter_datetime']].drop_duplicates(subset=['Task Owner Email']).index
+    first_visit_indices = df[df['CompletedOn'] == df['first_counter_visit_datetime']].drop_duplicates(subset=['Task Owner Email']).index
 
     # c) Calculate the 'late' flag ONLY for these first-visit rows.
     late_threshold = time(9, 30)
@@ -179,7 +179,7 @@ def run_processing_pipeline(planned_visit_file, unplanned_visit_file, counters_f
     df['late'] = pd.NA
     
     # For the identified first visit rows, calculate 1 if late, 0 if not.
-    df.loc[first_visit_indices, 'late'] = (df.loc[first_visit_indices, 'first_counter_datetime'].dt.time > late_threshold).astype(int)
+    df.loc[first_visit_indices, 'late'] = (df.loc[first_visit_indices, 'first_counter_visit_datetime'].dt.time > late_threshold).astype(int)
     
     # --- Step 5: SIMPLIFIED & DIRECT GEOCODING LOGIC ---
     print("Starting geocoding process with shapefile for all valid lat/long pairs...")
