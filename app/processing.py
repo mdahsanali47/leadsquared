@@ -158,28 +158,33 @@ def run_processing_pipeline(planned_visit_file, unplanned_visit_file, counters_f
 
     if df.empty:
         print("No data found for the selected date. Returning an empty report.")
-        return pd.DataFrame(columns=common_cols + ['District', 'State', 'digipin', 'Employee Id', 'first_counter_visit_datetime', 'late'])
+        all_cols = list(df.columns) + ['District', 'State', 'digipin', 'Employee Id', 'first_counter_visit_datetime', 'last_counter_visit_datetime', 'late_start', 'worked_late']
+        return pd.DataFrame(columns=all_cols)
 
     # --- Step 4: NEW TIME-BASED COLUMNS (Corrected Logic) ---
-    print("Calculating first visit time and late flag...")
+    print("Calculating first/last visit times and flags...")
 
-    # a) Create the 'first_counter_visit_datetime' column. This correctly shows the first visit time for all rows of a user.
+    # a) Get first and last visit datetimes for each user on the selected day
     df['first_counter_visit_datetime'] = df.groupby('Task Owner Email')['CompletedOn'].transform('min')
+    df['last_counter_visit_datetime'] = df.groupby('Task Owner Email')['CompletedOn'].transform('max')
 
-    # b) Identify the specific ROW that corresponds to the first visit.
-    # A row is a "first visit" if its 'CompletedOn' time equals the 'first_counter_visit_datetime'.
-    # We use drop_duplicates because a user could have two visits at the exact same first time. We only mark one.
-    first_visit_indices = df[df['CompletedOn'] == df['first_counter_visit_datetime']].drop_duplicates(subset=['Task Owner Email']).index
-
-    # c) Calculate the 'late' flag ONLY for these first-visit rows.
-    late_threshold = time(9, 30)
+    # b) Identify the unique row index for the first and last visit of each user
+    first_visit_indices = df.loc[df.groupby('Task Owner Email')['CompletedOn'].idxmin()].index
+    last_visit_indices = df.loc[df.groupby('Task Owner Email')['CompletedOn'].idxmax()].index
     
-    # Initialize the 'late' column with NA (which becomes blank in CSV) to handle empty values.
-    # We use a float type to accommodate NA.
-    df['late'] = pd.NA
+    # c) Define thresholds and initialize new, clearly named columns
+    late_start_threshold = time(9, 15)
+    late_finish_threshold = time(16, 0) 
     
-    # For the identified first visit rows, calculate 1 if late, 0 if not.
-    df.loc[first_visit_indices, 'late'] = (df.loc[first_visit_indices, 'first_counter_visit_datetime'].dt.time > late_threshold).astype(int)
+    df['late_start'] = pd.NA
+    df['worked_late'] = pd.NA 
+    
+    # d) Calculate flags ONLY on the specific first/last visit rows
+    # 'late_start' is 1 if the first visit is AFTER 9:15 AM
+    df.loc[first_visit_indices, 'late_start'] = (df.loc[first_visit_indices, 'first_counter_visit_datetime'].dt.time > late_start_threshold).astype(int)
+    
+    # 'worked_late' is 1 if the last visit is AFTER 4:00 PM
+    df.loc[last_visit_indices, 'worked_late'] = (df.loc[last_visit_indices, 'last_counter_visit_datetime'].dt.time > late_finish_threshold).astype(int)
     
     # --- Step 5: SIMPLIFIED & DIRECT GEOCODING LOGIC ---
     print("Starting geocoding process with shapefile for all valid lat/long pairs...")
@@ -236,9 +241,8 @@ def run_processing_pipeline(planned_visit_file, unplanned_visit_file, counters_f
     user_grouped = users.groupby("Email Address", as_index=False).agg({"Employee Id": "first"})
     df_final = pd.merge(left=df, right=user_grouped, left_on="Task Owner Email", right_on="Email Address", how="left")
     
-    # Convert 'late' column to a string to control the output format if desired, e.g., '1.0' -> '1'
-    # This also handles the NA values gracefully, turning them into empty strings in the CSV.
-    df_final['late'] = df_final['late'].astype('Int64').astype(str).replace('<NA>', '')
+    df_final['late_start'] = df_final['late_start'].astype('Int64').astype(str).replace('<NA>', '')
+    df_final['worked_late'] = df_final['worked_late'].astype('Int64').astype(str).replace('<NA>', '')
 
     df_final.drop(columns=['geometry', 'index_right'], errors='ignore', inplace=True)
     print("Processing finished.")
