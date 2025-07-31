@@ -143,6 +143,10 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+.leadsquaredvenv/
+
+# hash_password.py
+hash_password.py
 
 # Spyder project settings
 .spyderproject

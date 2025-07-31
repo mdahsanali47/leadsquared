@@ -98,7 +98,7 @@ def parse_mixed_formats(series, formats):
 
     return parsed_series
 
-def run_processing_pipeline(planned_visit_file, unplanned_visit_file, counters_file, users_file, filter_date_str: str):
+def run_processing_pipeline(planned_visit_file, unplanned_visit_file, counters_file, users_file, start_date_str: str, end_date_str: str):
     """
     Main function to execute the entire data processing logic.
     This version IGNORES operational city/state columns and relies 100% on the shapefile for geocoding.
@@ -151,10 +151,14 @@ def run_processing_pipeline(planned_visit_file, unplanned_visit_file, counters_f
         print(f"WARNING: Dropping {failed_count} rows where 'CompletedOn' could not be parsed with any known format.")
         df.dropna(subset=['CompletedOn'], inplace=True)
 
-    # Filter the DataFrame to keep only records for the selected date
-    target_date = pd.to_datetime(filter_date_str).date()
-    df = df[df['CompletedOn'].dt.date == target_date].copy()
-    print(f"Record count after filtering for date {target_date}: {len(df)}")
+    start_date = pd.to_datetime(start_date_str).date()
+    end_date = pd.to_datetime(end_date_str).date()
+    
+    # Create a boolean mask to filter rows within the date range (inclusive)
+    date_range_mask = (df['CompletedOn'].dt.date >= start_date) & (df['CompletedOn'].dt.date <= end_date)
+    df = df[date_range_mask].copy()
+    
+    print(f"Record count after filtering for date range {start_date} to {end_date}: {len(df)}")
 
     if df.empty:
         print("No data found for the selected date. Returning an empty report.")
@@ -162,29 +166,30 @@ def run_processing_pipeline(planned_visit_file, unplanned_visit_file, counters_f
         return pd.DataFrame(columns=all_cols)
 
     # --- Step 4: NEW TIME-BASED COLUMNS (Corrected Logic) ---
-    print("Calculating first/last visit times and flags...")
+    print("Calculating daily first/last visit times and flags...")
 
-    # a) Get first and last visit datetimes for each user on the selected day
-    df['first_counter_visit_datetime'] = df.groupby('Task Owner Email')['CompletedOn'].transform('min')
-    df['last_counter_visit_datetime'] = df.groupby('Task Owner Email')['CompletedOn'].transform('max')
+    # Create a 'date' column to group by user AND day
+    df['visit_date'] = df['CompletedOn'].dt.date
 
-    # b) Identify the unique row index for the first and last visit of each user
-    first_visit_indices = df.loc[df.groupby('Task Owner Email')['CompletedOn'].idxmin()].index
-    last_visit_indices = df.loc[df.groupby('Task Owner Email')['CompletedOn'].idxmax()].index
+    # a) Group by user AND day to get the first/last visit for each day in the range
+    df['first_counter_visit_datetime'] = df.groupby(['Task Owner Email', 'visit_date'])['CompletedOn'].transform('min')
+    df['last_counter_visit_datetime'] = df.groupby(['Task Owner Email', 'visit_date'])['CompletedOn'].transform('max')
+
+    # b) Identify the unique row index for the first and last visit of each user FOR EACH DAY
+    first_visit_indices = df.loc[df.groupby(['Task Owner Email', 'visit_date'])['CompletedOn'].idxmin()].index
+    last_visit_indices = df.loc[df.groupby(['Task Owner Email', 'visit_date'])['CompletedOn'].idxmax()].index
     
-    # c) Define thresholds and initialize new, clearly named columns
+    # c) Define thresholds and initialize columns
     late_start_threshold = time(9, 15)
-    late_finish_threshold = time(16, 0) 
-    
+    late_finish_threshold = time(16, 0)
     df['late_start'] = pd.NA
-    df['worked_late'] = pd.NA 
+    df['worked_late'] = pd.NA
     
-    # d) Calculate flags ONLY on the specific first/last visit rows
-    # 'late_start' is 1 if the first visit is AFTER 9:15 AM
+    # d) Calculate flags based on the daily first/last visits
     df.loc[first_visit_indices, 'late_start'] = (df.loc[first_visit_indices, 'first_counter_visit_datetime'].dt.time > late_start_threshold).astype(int)
-    
-    # 'worked_late' is 1 if the last visit is AFTER 4:00 PM
     df.loc[last_visit_indices, 'worked_late'] = (df.loc[last_visit_indices, 'last_counter_visit_datetime'].dt.time > late_finish_threshold).astype(int)
+
+    df.drop(columns=['visit_date'], inplace=True) # dropping the helper 'visit_date' column
     
     # --- Step 5: SIMPLIFIED & DIRECT GEOCODING LOGIC ---
     print("Starting geocoding process with shapefile for all valid lat/long pairs...")

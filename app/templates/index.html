@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CRM Report Processor</title>
+    <title>Leadsquared Report Processor</title>
     <style>
         body { font-family: sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; line-height: 1.6; background-color: #f4f4f4; }
         h1 { color: #333; }
@@ -22,14 +22,29 @@
 </head>
 <body>
     <div class="container">
-        <h1>Leadsquared CRM Report Generator</h1>
-        <p>Please upload all four required CSV files. The system will process them and provide a final combined report for download.</p>
+        <div style="text-align: right; margin-bottom: 20px;">
+            <span>Welcome, {{ username }}!</span>
+            <form action="/logout" method="post" style="display: inline; margin-left: 15px;">
+                <button type="submit" style="width: auto; padding: 5px 10px; font-size: 14px; background-color: #dc3545;">Logout</button>
+            </form>
+        </div>
+        <h1>Leadsquared Visit Report Generator</h1>
+        <p>Select a date range and upload all four required CSV files to generate the final report.</p>
         
         <form id="upload-form">
-            <div class="file-input-group">
-                <label for="filter-date">Select Report Date</label>
-                <input type="date" id="filter-date" name="filter_date" required>
+            <div class="input-group date-range-container">
+                <div style="flex: 1;">
+                    <label for="start-date">Start Date</label>
+                    <input type="date" id="start-date" name="start_date" required>
+                </div>
+                <div style="flex: 1;">
+                    <label for="end-date">End Date</label>
+                    <input type="date" id="end-date" name="end_date" required>
+                </div>
             </div>
+
+            <hr style="margin: 20px 0;">
+
             <div class="file-input-group">
                 <label for="planned-file">1. Planned Visits File</label>
                 <input type="file" id="planned-file" name="planned_visit_file" accept=".csv" required>
@@ -57,12 +72,19 @@
         const form = document.getElementById('upload-form');
         const submitBtn = document.getElementById('submit-btn');
         const statusDiv = document.getElementById('status');
-        const dateInput = document.getElementById('filter-date');
+        const startDateInput = document.getElementById('start-date');
+        const endDateInput = document.getElementById('end-date');
 
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
             
             const formData = new FormData(form);
+
+            if (!startDateInput.value || !endDateInput.value) {
+                setStatus('Error: Please select both a start and end date.', 'error');
+                return;
+            }
+
             const inputs = form.querySelectorAll('input[type="file"]');
 
             for (const input of inputs) {
@@ -88,7 +110,7 @@
                     const url = window.URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     const contentDisposition = response.headers.get('content-disposition');
-                    let filename = "final_report.csv";
+                    let filename = `final_report_${startDateInput.value}_to_${endDateInput.value}.csv`;
                     if (contentDisposition) {
                         const filenameMatch = contentDisposition.match(/filename="?(.+)"?/);
                         if (filenameMatch && filenameMatch.length > 1) {
