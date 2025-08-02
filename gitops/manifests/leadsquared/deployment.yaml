@@ -33,6 +33,10 @@ spec:
         - name: http
           containerPort: 8000
           protocol: TCP
+        # Pull configuration from Secret
+          envFrom:
+            - secretRef:
+                name: leadsquared-secret
         
         # Probes are essential for Kubernetes to manage your app's lifecycle
         # livenessProbe:
@@ -73,4 +77,5 @@ spec:
           mountPath: /tmp
       volumes:
       - name: tmp-volume
+
         emptyDir: {}
