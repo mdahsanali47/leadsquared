@@ -100,7 +100,7 @@
             setStatus('Uploading and processing your files. Please wait...', 'processing');
 
             try {
-                const response = await fetch('/process-reports/', {
+                const response = await fetch('/leadsquared/process-reports/', {
                     method: 'POST',
                     body: formData,
                 });
