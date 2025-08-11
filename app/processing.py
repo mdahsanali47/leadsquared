@@ -16,6 +16,9 @@ MAPPING_FILE_PATH = "data/district_mapping.yml"
 SHP_DISTRICT_COL = "Dist_Name"
 SHP_STATE_COL = "State_Name" 
 
+# It will be loaded lazily on the first request.
+shapefile_for_join_cache = None 
+
 def load_and_prepare_shapefile():
     """
     Loads the shapefile and applies the custom business name mapping from a YAML file.
@@ -45,18 +48,12 @@ def load_and_prepare_shapefile():
     def get_mapped_district(row):
         state_name = row[SHP_STATE_COL]
         district_name = row[SHP_DISTRICT_COL]
-        
-        # Safely get the dictionary of districts for the given state.
-        # This returns None if the state isn't in the mapping file OR if its value is null.
+
         district_map_for_state = mapping_data.get(state_name)
 
-        # Now, check if we got a valid dictionary back (i.e., it's not None).
         if district_map_for_state:
-            # If we did, then try to get the mapped district name.
-            # If the district isn't in this sub-dictionary, return its original name.
             return district_map_for_state.get(district_name, district_name)
         
-        # If the state wasn't found or its value was None, return the original district name.
         return district_name
 
     india_gdf['master_district'] = india_gdf.apply(get_mapped_district, axis=1)
@@ -71,9 +68,6 @@ def load_and_prepare_shapefile():
     
     return shapefile_for_join
 
-# --- Load and Prepare Shapefile ONCE on Application Startup ---
-shapefile_for_join = load_and_prepare_shapefile()
-
 def parse_mixed_formats(series, formats):
     """
     Tries to parse a pandas Series with a list of different date formats.
@@ -84,11 +78,7 @@ def parse_mixed_formats(series, formats):
 
     for fmt in formats:
         converted = pd.to_datetime(to_parse, format=fmt, errors='coerce')
-        # Update our results with the successfully converted dates
-        parsed_series = parsed_series.fillna(converted)
-        
-        # Update the list of strings that still need parsing
-        # (i.e., remove the ones we just successfully converted)
+        parsed_series = parsed_series.fillna(converted)    
         to_parse = to_parse[converted.isna()]
 
     # If any strings are left over after trying all formats, try one last time automatically
@@ -103,8 +93,20 @@ def run_processing_pipeline(planned_visit_file, unplanned_visit_file, counters_f
     Main function to execute the entire data processing logic.
     This version IGNORES operational city/state columns and relies 100% on the shapefile for geocoding.
     """
-    if shapefile_for_join is None:
-        raise RuntimeError("Shapefile is not loaded or prepared correctly. Cannot process data.")
+
+    # --- Using global cache for shapefile_for_join ---
+    global shapefile_for_join_cache 
+
+    if shapefile_for_join_cache is None:
+        print("Shapefile data not yet loaded. Loading now...")
+        shapefile_for_join_cache = load_and_prepare_shapefile()
+        if shapefile_for_join_cache is None:
+            raise RuntimeError("Shapefile could not be loaded on demand. Cannot process data.")
+    else:
+        print("Shapefile data already loaded in memory. Reusing cache.")
+
+    # Using cached data for processing
+    shapefile_for_join = shapefile_for_join_cache
 
     # Step 1: Read all uploaded files into DataFrames
     counters = pd.read_csv(counters_file)

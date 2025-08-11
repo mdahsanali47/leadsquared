@@ -148,6 +148,9 @@ venv.bak/
 # hash_password.py
 hash_password.py
 
+# Jupyter Notebook
+employee-wise-report.ipynb
+
 # Spyder project settings
 .spyderproject
 .spyproject

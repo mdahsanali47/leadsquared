@@ -6,7 +6,7 @@ metadata:
   labels:
     app: leadsquared-gis-processor
 spec:
-  replicas: 1
+  replicas: 0
   selector:
     matchLabels:
       app: leadsquared-gis-processor
@@ -33,6 +33,9 @@ spec:
         - name: http
           containerPort: 8000
           protocol: TCP
+        envFrom:
+        - secretRef:
+            name: leadsquared-secret
         
         # Probes are essential for Kubernetes to manage your app's lifecycle
         # livenessProbe:
@@ -49,7 +52,7 @@ spec:
         #   periodSeconds: 10
         
         nodeSelector:
-          kubernetes.io/hostname: k3s-worker3
+          node-role: light-weight-worker 
 
         resources:
           requests:
