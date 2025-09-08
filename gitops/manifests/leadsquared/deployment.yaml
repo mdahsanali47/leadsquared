@@ -26,7 +26,9 @@ spec:
         fsGroup: 1001
 
       nodeSelector:
-        node-role: light-weight-worker
+        # node-role: light-weight-worker
+        kubernetes.io/hostname: k3sworker7
+
 
       containers:
       - name: leadsquared-gis-processor
