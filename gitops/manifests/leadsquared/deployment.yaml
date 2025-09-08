@@ -39,7 +39,7 @@ spec:
       containers:
       - name: leadsquared-gis-processor
         # IMPORTANT: The image tag will be updated by your CI/CD pipeline (e.g., ArgoCD Image Updater)
-        image: bom.ocir.io/bm4vulrtwoqg/leadsquared-gis-processor:e920028
+        image: bom.ocir.io/bm4vulrtwoqg/leadsquared-gis-processor:77c01e6
         imagePullPolicy: Always
         ports:
         - name: http

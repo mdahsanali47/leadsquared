@@ -42,7 +42,7 @@ async def login_for_access_token(
         access_token = auth.create_access_token(data={"sub": form_data.username}, expires_delta=access_token_expires)
         response.set_cookie(key="access_token", value=access_token, httponly=True, samesite="strict")
         response.status_code = status.HTTP_303_SEE_OTHER
-        response.headers["Location"] = request.url_for('read_root') 
+        response.headers["Location"] = str(request.url_for('read_root'))
         return response
     
     return templates.TemplateResponse("login.html", {"request": request, "error_message": "Incorrect username or password"}, status_code=400)
