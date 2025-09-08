@@ -13,10 +13,7 @@ from fastapi.templating import Jinja2Templates
 from . import auth
 from .processing import run_processing_pipeline
 
-# Create the main FastAPI app instance. It will have NO routes of its own.
 app = FastAPI(title="CRM Report Processor")
-
-# Create an APIRouter. All of our application's routes will be attached to this.
 router = APIRouter()
 
 templates = Jinja2Templates(directory="app/templates")
@@ -24,10 +21,6 @@ templates = Jinja2Templates(directory="app/templates")
 # --- Authentication Dependency ---
 async def get_token_from_cookie(access_token: Optional[str] = Cookie(None)) -> Optional[str]:
     return access_token
-
-# --- Login and Logout Endpoints ---
-# IMPORTANT: Change @app.get to @router.get, @app.post to @router.post, etc.
-# The paths are now relative to the router's prefix.
 
 @router.get("/login", response_class=HTMLResponse)
 async def login_form(request: Request):
@@ -39,10 +32,8 @@ async def login_for_access_token(response: Response, form_data: OAuth2PasswordRe
         access_token_expires = timedelta(minutes=auth.ACCESS_TOKEN_EXPIRE_MINUTES)
         access_token = auth.create_access_token(data={"sub": form_data.username}, expires_delta=access_token_expires)
         response.set_cookie(key="access_token", value=access_token, httponly=True, samesite="strict")
-        
-        # This redirect is now relative to the router prefix
         response.status_code = status.HTTP_303_SEE_OTHER
-        response.headers["Location"] = "." # Redirect to the router's root path ('/')
+        response.headers["Location"] = "."
         return response
     
     return templates.TemplateResponse("login.html", {"request": {}, "error_message": "Incorrect username or password"}, status_code=400)
@@ -50,7 +41,6 @@ async def login_for_access_token(response: Response, form_data: OAuth2PasswordRe
 @router.post("/logout")
 async def logout(response: Response):
     response.delete_cookie(key="access_token")
-    # This redirect is now relative to the router prefix
     return RedirectResponse(url="/login", status_code=status.HTTP_303_SEE_OTHER)
 
 # --- Protected Application Endpoints ---
@@ -92,12 +82,4 @@ async def process_reports_endpoint(start_date: str = Form(...), end_date: str = 
         print(f"Error during processing: {e}") 
         raise HTTPException(status_code=500, detail=f"An error occurred during processing: {e}")
 
-# # Unprotected Health Check Endpoint - Mount it on the main app
-# @app.get("/health", status_code=200, tags=["Health"])
-# async def health_check():
-#     """Simple health check endpoint for Kubernetes probes. Does not require auth."""
-#     return {"status": "ok"}
-
-# --- THIS IS THE CRITICAL STEP ---
-# Mount the router with all its routes onto the main app at the desired prefix.
 app.include_router(router, prefix="/leadsquared")
