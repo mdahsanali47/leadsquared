@@ -1,42 +1,67 @@
 # =========================================================================
-# RIGID SINGLE-STAGE DOCKERFILE
-# This version prioritizes a successful build over minimal image size.
+# STAGE 1: The "Builder" Stage
+# This stage installs all build tools, compiles dependencies, and prepares
+# the application. It will be discarded at the end.
 # =========================================================================
+FROM python:3.12-slim AS builder
 
-# Start from the same base image
-FROM python:3.12-slim
-
-# Set environment variables for a clean and efficient build/runtime
+# Set environment variables for the build
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1 \
-    UVICORN_WORKERS=1
+    PIP_DISABLE_PIP_VERSION_CHECK=1
 
-# Install ALL system dependencies in a single layer.
-# 'libgdal-dev' is the development package, which automatically pulls in the
-# correct runtime libraries (like libgdal33) as dependencies.
-# This avoids any issues with guessing the right runtime package name.
+# Install build-time system dependencies needed to compile Python packages
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     libgdal-dev \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Set the application's working directory
 WORKDIR /app
 
-# Copy and install Python dependencies
+# Install Python dependencies. This layer is cached as long as
+# requirements.txt doesn't change.
 COPY requirements.txt ./
 RUN pip install --no-input -r requirements.txt
 
-# Create a non-root user for security
-RUN groupadd -r appuser && useradd --no-log-init -r -g appuser appuser
-
-# Copy the rest of the application code
+# Copy the application code into the builder stage
 COPY . .
 
-# Change ownership of the entire app directory to the non-root user
+# =========================================================================
+# STAGE 2: The "Final" Production Stage
+# This stage starts from a clean base and copies ONLY the necessary
+# artifacts from the "builder" stage, resulting in a tiny final image.
+# =========================================================================
+FROM python:3.12-slim
+
+# Set environment variables for runtime
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    UVICORN_WORKERS=1
+
+# Install ONLY the required runtime system dependencies.
+# 'libgdal33' is the shared library file needed by the Python packages to run.
+# It's much smaller than the '-dev' package.
+# NOTE: The package name might change (libgdal36) in future Debian versions.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgdal36 \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create a non-root user and group for security
+RUN groupadd -r appuser && useradd --no-log-init -r -g appuser appuser
+
+WORKDIR /app
+
+# Copy the installed Python packages from the builder stage
+# This copies the entire 'site-packages' directory where pip installed everything.
+COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
+
+# Copy the application code from the builder stage
+COPY --from=builder /app /app
+
+# Change ownership of the app directory to the non-root user
 RUN chown -R appuser:appuser /app
 
 # Switch to the non-root user
@@ -44,10 +69,6 @@ USER appuser
 
 # Expose the port the app runs on
 EXPOSE 8000
-
-# # Health check to ensure the application is responsive
-# HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
-#   CMD python -c "import requests; requests.get('http://localhost:8000/health', timeout=5).raise_for_status()"
 
 # Run the application
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
