@@ -14,7 +14,10 @@ from fastapi.templating import Jinja2Templates
 from . import auth
 from .processing import run_processing_pipeline
 
-app = FastAPI(title="CRM Report Processor")
+app = FastAPI(
+    title="CRM Report Processor",
+    root_path="/leadsquared"
+    )
 templates = Jinja2Templates(directory="app/templates")
 
 # --- New Authentication Dependency ---
