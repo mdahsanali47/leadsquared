@@ -23,7 +23,11 @@ spec:
       securityContext:
         runAsNonRoot: true
         runAsUser: 1001      
-        fsGroup: 1001      
+        fsGroup: 1001
+
+      nodeSelector:
+        node-role: light-weight-worker
+
       containers:
       - name: leadsquared-gis-processor
         # IMPORTANT: The image tag will be updated by your CI/CD pipeline (e.g., ArgoCD Image Updater)
@@ -35,24 +39,7 @@ spec:
           protocol: TCP
         envFrom:
         - secretRef:
-            name: leadsquared-secret
-        
-        # Probes are essential for Kubernetes to manage your app's lifecycle
-        # livenessProbe:
-        #   httpGet:
-        #     path: /health # Your new health check endpoint
-        #     port: http
-        #   initialDelaySeconds: 15
-        #   periodSeconds: 20
-        # readinessProbe:
-        #   httpGet:
-        #     path: /health # Your new health check endpoint
-        #     port: http
-        #   initialDelaySeconds: 5
-        #   periodSeconds: 10
-        
-        nodeSelector:
-          node-role: light-weight-worker 
+            name: leadsquared-secret 
 
         resources:
           requests:
@@ -68,6 +55,20 @@ spec:
           capabilities:
             drop:
             - ALL
+
+        # Probes are essential for Kubernetes to manage your app's lifecycle
+        # livenessProbe:
+        #   httpGet:
+        #     path: /health # Your new health check endpoint
+        #     port: http
+        #   initialDelaySeconds: 15
+        #   periodSeconds: 20
+        # readinessProbe:
+        #   httpGet:
+        #     path: /health # Your new health check endpoint
+        #     port: http
+        #   initialDelaySeconds: 5
+        #   periodSeconds: 10
         
         # Provide a writable /tmp directory since the root filesystem is read-only
         # FastAPI/Uvicorn may need this for handling file uploads.
