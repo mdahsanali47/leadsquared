@@ -116,9 +116,9 @@ def run_processing_pipeline(planned_visit_file, unplanned_visit_file, counters_f
 
     # Step 2: Pre-processing logic
     pv = pv[pv['Task Completed'].notna()].copy()
-    counters_unique = counters.drop_duplicates('Counter Code', keep='first').set_index('Counter Code')
-    pv['Latitude']  = pv['Counter Code'].map(counters_unique['Latitude'])
-    pv['Longitude'] = pv['Counter Code'].map(counters_unique['Longitude'])
+    counters_unique = counters.drop_duplicates('Counter Number', keep='first').set_index('Counter Number')
+    pv['Latitude']  = pv['Counter Number'].map(counters_unique['Latitude'])
+    pv['Longitude'] = pv['Counter Number'].map(counters_unique['Longitude'])
     pv.rename(columns={'Task Completed':'CompletedOn'}, inplace=True)
     pv['visit_type'] = 'Planned'
     
