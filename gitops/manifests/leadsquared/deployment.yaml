@@ -26,8 +26,14 @@ spec:
         fsGroup: 1001
 
       nodeSelector:
-        # node-role: light-weight-worker
-        kubernetes.io/hostname: k3sworker7
+        node-role: light-weight-worker
+
+      # Allow scheduling on tainted "lightweight" nodes
+      tolerations:
+      - key: "workload-type"
+        operator: "Equal"
+        value: "lightweight"
+        effect: "NoSchedule"
 
 
       containers:
