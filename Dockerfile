@@ -58,6 +58,10 @@ WORKDIR /app
 # This copies the entire 'site-packages' directory where pip installed everything.
 COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
 
+# --- NEW: Copy the executables from the builder stage ---
+# This copies 'uvicorn', 'fastapi', etc. into a standard location.
+COPY --from=builder /usr/local/bin /usr/local/bin
+
 # Copy the application code from the builder stage
 COPY --from=builder /app /app
 

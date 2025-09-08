@@ -1,10 +1,26 @@
+# Git
 .git
 .gitignore
-.dockerignore
-__pycache__
-.venv
-/tests
+
+# Python cache
+__pycache__/
 *.pyc
 *.pyo
 *.pyd
+
+# Virtual environments
+.venv/
+env/
+venv/
+.leadsquaredvenv/
+
+# Tests (optional, if you don’t need them in image)
+
+# Environment & secrets
 .env
+*.env
+
+# Extra files
+employee-wise-report.ipynb
+hash_password.py
+build.sh
