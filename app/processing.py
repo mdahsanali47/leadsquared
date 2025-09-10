@@ -92,12 +92,23 @@ def safe_read_csv(upload_file, **kwargs):
     """
     Handles both file paths and UploadFile objects safely.
     Always resets pointer for in-memory streams (Android).
+    Tries UTF-8-SIG first, falls back to cp1252 if needed.
+    Forces dtype=str to avoid accidental float conversion.
     """
     if hasattr(upload_file, "file"):  # FastAPI UploadFile
         upload_file.file.seek(0)
-        return pd.read_csv(upload_file.file, **kwargs)
+        data = upload_file.file
     else:  # Path-like (Windows temp file)
-        return pd.read_csv(upload_file, **kwargs)
+        data = upload_file
+
+    try:
+        return pd.read_csv(data, encoding="utf-8-sig", dtype=str, **kwargs)
+    except UnicodeDecodeError:
+        # Fallback for Windows/Android generated files
+        if hasattr(upload_file, "file"):
+            upload_file.file.seek(0)
+        return pd.read_csv(data, encoding="cp1252", dtype=str, **kwargs)
+
 
 def run_processing_pipeline(planned_visit_file, unplanned_visit_file, counters_file, users_file, start_date_str: str, end_date_str: str):
     """
@@ -124,10 +135,10 @@ def run_processing_pipeline(planned_visit_file, unplanned_visit_file, counters_f
     # pv = pd.read_csv(planned_visit_file)
     # uv = pd.read_csv(unplanned_visit_file, encoding='cp1252', low_memory=False, dtype={1: str, 6: str})
     # users = pd.read_csv(users_file)
-    counters = safe_read_csv(counters_file, encoding="utf-8-sig", low_memory=False)
-    pv = safe_read_csv(planned_visit_file, encoding="utf-8-sig", low_memory=False)
-    uv = safe_read_csv(unplanned_visit_file, encoding="cp1252", low_memory=False, dtype={1: str, 6: str})
-    users = safe_read_csv(users_file, encoding="utf-8-sig", low_memory=False)
+    counters = safe_read_csv(counters_file, low_memory=False)
+    pv = safe_read_csv(planned_visit_file, low_memory=False)
+    uv = safe_read_csv(unplanned_visit_file, low_memory=False)
+    users = safe_read_csv(users_file, low_memory=False)
 
     # Step 2: Pre-processing logic
     pv = pv[pv['Task Completed'].notna()].copy()
