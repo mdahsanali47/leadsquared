@@ -88,6 +88,17 @@ def parse_mixed_formats(series, formats):
 
     return parsed_series
 
+def safe_read_csv(upload_file, **kwargs):
+    """
+    Handles both file paths and UploadFile objects safely.
+    Always resets pointer for in-memory streams (Android).
+    """
+    if hasattr(upload_file, "file"):  # FastAPI UploadFile
+        upload_file.file.seek(0)
+        return pd.read_csv(upload_file.file, **kwargs)
+    else:  # Path-like (Windows temp file)
+        return pd.read_csv(upload_file, **kwargs)
+
 def run_processing_pipeline(planned_visit_file, unplanned_visit_file, counters_file, users_file, start_date_str: str, end_date_str: str):
     """
     Main function to execute the entire data processing logic.
@@ -109,10 +120,14 @@ def run_processing_pipeline(planned_visit_file, unplanned_visit_file, counters_f
     shapefile_for_join = shapefile_for_join_cache
 
     # Step 1: Read all uploaded files into DataFrames
-    counters = pd.read_csv(counters_file)
-    pv = pd.read_csv(planned_visit_file)
-    uv = pd.read_csv(unplanned_visit_file, encoding='cp1252', low_memory=False, dtype={1: str, 6: str})
-    users = pd.read_csv(users_file)
+    # counters = pd.read_csv(counters_file)
+    # pv = pd.read_csv(planned_visit_file)
+    # uv = pd.read_csv(unplanned_visit_file, encoding='cp1252', low_memory=False, dtype={1: str, 6: str})
+    # users = pd.read_csv(users_file)
+    counters = safe_read_csv(counters_file, encoding="utf-8-sig", low_memory=False)
+    pv = safe_read_csv(planned_visit_file, encoding="utf-8-sig", low_memory=False)
+    uv = safe_read_csv(unplanned_visit_file, encoding="cp1252", low_memory=False, dtype={1: str, 6: str})
+    users = safe_read_csv(users_file, encoding="utf-8-sig", low_memory=False)
 
     # Step 2: Pre-processing logic
     pv = pv[pv['Task Completed'].notna()].copy()
