@@ -55,7 +55,7 @@ spec:
             memory: "256Mi" 
           limits:
             cpu: "400m" 
-            memory: "1Gi"   
+            memory: "768Mi"   
         
         securityContext:
           allowPrivilegeEscalation: false
@@ -85,4 +85,5 @@ spec:
           mountPath: /tmp
       volumes:
       - name: tmp-volume
+
         emptyDir: {}
